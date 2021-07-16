@@ -1,8 +1,0 @@
-{
-    "repositories": [
-        {
-            "url":    "https://capr.elandasunshine.xyz/repository",
-            "format": "${CAPR_FORMAT_STANDARD}"
-        }
-    ]
-}

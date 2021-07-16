@@ -1,9 +1,15 @@
 ########################################################################################################################
+include_guard()
+
+########################################################################################################################
 set(CSON_DEFAULT_SEVERITY "FATAL_ERROR" CACHE STRING "The default log level for any CSON function call")
+set(CSON_COMMENT_KEYWORD  ""            CACHE STRING "Specifies a keyword that behaves as a comment and will not be included in the parse tree, if left empty no key will be treated as a comment")
+
+option(CSON_ONLY_STRINGS_ARE_COMMENTS "If comments are enabled, then only string values will be treated as comments, otherwise all types will be treated as comments" ON)
 
 ########################################################################################################################
 macro(cson_internal_log_message)
-    if (NOT "${parse_error}" STREQUAL "NOTFOUND")
+    if (NOT "${parse_error}" STREQUAL "NOTFOUND" AND NOT "${parse_error}" STREQUAL "")
         if (NOT DEFINED ARG_SEVERITY OR "SEVERITY" IN_LIST ARG_KEYWORDS_MISSING_VALUES)
             set(ARG_SEVERITY "${CSON_DEFAULT_SEVERITY}")
         endif()
@@ -50,7 +56,6 @@ macro(cson_internal_process_member member_prefix member type)
         math(EXPR ${member_prefix}_last_index "${${member_prefix}_member_length} - 1")
 
         if ("${type}" STREQUAL "ARRAY")
-        
             if (${${member_prefix}_member_length} GREATER 0)
                 foreach(${member_prefix}_i RANGE ${${member_prefix}_last_index})
                     cson_internal_json(
@@ -78,6 +83,8 @@ macro(cson_internal_process_member member_prefix member type)
             if (NOT "${member_prefix}" STREQUAL "")
                 list(APPEND CSON_LIST_ARRAY_${prefix} ${prefix}${${member_prefix}_opt_dot}${member_prefix})
             endif()
+
+            list(APPEND CSON_LIST_JSON_${prefix} "${prefix}${${member_prefix}_opt_dot}${member_prefix};${member}")
         else()
             if (${${member_prefix}_member_length} GREATER 0)
                 foreach(${member_prefix}_i RANGE ${${member_prefix}_last_index})
@@ -93,6 +100,13 @@ macro(cson_internal_process_member member_prefix member type)
                         ${member_prefix}_${${member_prefix}_i}_value
                         GET ${member} ${${member_prefix}_${${member_prefix}_i}_name})
 
+                    if (NOT "${CSON_COMMENT_KEYWORD}" STREQUAL "" AND "${${member_prefix}_${${member_prefix}_i}_name}" STREQUAL "${CSON_COMMENT_KEYWORD}")
+                        if (NOT CSON_ONLY_STRINGS_ARE_COMMENTS OR "${${member_prefix}_${${member_prefix}_i}_type}" STREQUAL "STRING")
+                            list(APPEND CSON_LIST_COMMENTS_${prefix} "${prefix}${member_prefix}:${${member_prefix}_i}|${${member_prefix}_${${member_prefix}_i}_value}")
+                            continue()
+                        endif()
+                    endif()
+
                     cson_internal_process_member(
                         ${member_prefix}${${member_prefix}_opt_dot}${${member_prefix}_${${member_prefix}_i}_name}
                         "${${member_prefix}_${${member_prefix}_i}_value}"
@@ -100,6 +114,8 @@ macro(cson_internal_process_member member_prefix member type)
 
                     list(APPEND ${member_prefix}_result ${prefix}${${member_prefix}_opt_dot}${member_prefix}.${${member_prefix}_${${member_prefix}_i}_name})
                 endforeach()
+
+                list(APPEND CSON_LIST_JSON_${prefix} "${prefix}${${member_prefix}_opt_dot}${member_prefix};${member}")
             endif()
 
             if (NOT "${member_prefix}" STREQUAL "")
@@ -139,15 +155,17 @@ function(cson_parse_json prefix json_text)
 
     cson_internal_process_member("" "${json_text}" "${root_type}")
 
-    set(CSON_LIST_NUMBER_${prefix} ${CSON_LIST_NUMBER_${prefix}} PARENT_SCOPE)
-    set(CSON_LIST_STRING_${prefix} ${CSON_LIST_STRING_${prefix}} PARENT_SCOPE)
-    set(CSON_LIST_BOOL_${prefix}   ${CSON_LIST_BOOL_${prefix}}   PARENT_SCOPE)
-    set(CSON_LIST_NULL_${prefix}   ${CSON_LIST_NULL_${prefix}}   PARENT_SCOPE)
-    set(CSON_LIST_ARRAY_${prefix}  ${CSON_LIST_ARRAY_${prefix}}  PARENT_SCOPE)
-    set(CSON_LIST_OBJECT_${prefix} ${CSON_LIST_OBJECT_${prefix}} PARENT_SCOPE)
+    set(CSON_LIST_NUMBER_${prefix}   ${CSON_LIST_NUMBER_${prefix}}   PARENT_SCOPE)
+    set(CSON_LIST_STRING_${prefix}   ${CSON_LIST_STRING_${prefix}}   PARENT_SCOPE)
+    set(CSON_LIST_BOOL_${prefix}     ${CSON_LIST_BOOL_${prefix}}     PARENT_SCOPE)
+    set(CSON_LIST_NULL_${prefix}     ${CSON_LIST_NULL_${prefix}}     PARENT_SCOPE)
+    set(CSON_LIST_ARRAY_${prefix}    ${CSON_LIST_ARRAY_${prefix}}    PARENT_SCOPE)
+    set(CSON_LIST_OBJECT_${prefix}   ${CSON_LIST_OBJECT_${prefix}}   PARENT_SCOPE)
+    set(CSON_LIST_COMMENTS_${prefix} ${CSON_LIST_COMMENTS_${prefix}} PARENT_SCOPE)
+    set(CSON_LIST_JSON_${prefix}     ${CSON_LIST_JSON_${prefix}}     PARENT_SCOPE)
 endfunction()
 
-function(cson_include prefix json_file)
+function(cson_load prefix json_file)
     cmake_parse_arguments(ARG "" "SEVERITY" "" ${ARGN})
 
     if (NOT EXISTS json_file)
@@ -159,3 +177,9 @@ function(cson_include prefix json_file)
     file(READ ${json_file} json_file_output)
     cson_parse_json(${prefix} "${json_file_output}" SEVERITY ${ARG_SEVERITY})
 endfunction()
+
+macro(cson_set_defaults)
+    set(CSON_DEFAULT_SEVERITY          "FATAL_ERROR")
+    set(CSON_COMMENT_KEYWORD           "")
+    set(CSON_ONLY_STRINGS_ARE_COMMENTS ON)
+endmacro()

@@ -1,0 +1,4 @@
+[15/07/2021-03:36][NOTICE] This is an info, I will inform you
+[15/07/2021-03:36][STATUS] This is a status message, whatever I am
+[15/07/2021-03:36][WARNING] This is a warning, hello, pay attention
+[15/07/2021-03:36][SEND_ERROR] This' an error, GRHHHHH MISTAKE

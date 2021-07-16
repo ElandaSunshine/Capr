@@ -1,0 +1,8 @@
+[submodule "lib/lib/juce"]
+	path = lib/lib/juce
+	url = https://github.com/juce-framework/juce.git
+	branch = develop
+[submodule "lib/juce"]
+	path = lib/juce
+	url = https://github.com/juce-framework/juce.git
+	branch = develop
