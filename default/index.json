@@ -1,15 +1,7 @@
-{
-    "//": "It's best to keep the default repository as it is or things might break.",
-    "repositories": [
-        {
-            "host": "https://capr.elandasunshine.xyz/repository",
-            "description": "The official Capr repository, providing all sorts of plugins for CMake",
-            
-            "format": {
-                "path": "%plugin_package_path%/%plugin_name%/%plugin_version_full%/%plugin_name%-%plugin_version%.%file_extension%",
-                "compression": "zip",
-                "hash_algorithms": "SHA1;MD5"
-            }
-        }
-    ]
-}
+[
+    {
+        "name": "Capr Official Repository",
+        "host": "http://capr.elandasunshine.xyz/repository",
+        "description": "The official Capr repository, providing all sorts of plugins for CMake"
+    }
+]

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20.5)
 
 project(CmapsTest)
 
-include("${CMAKE_CURRENT_LIST_DIR}/../../inbuilt/cmaps/CMaps.cmake")
+include("../../inbuilt/cmaps.cmake")
 
 function(output_map_entries map)
     foreach(entry IN LISTS ${map})

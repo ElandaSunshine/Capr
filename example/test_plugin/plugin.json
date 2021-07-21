@@ -1,0 +1,47 @@
+{
+    "name": "Example Plugin",
+    "id": "example",
+    "version": "1.0.0",
+    "package": "xyz.elandasunshine",
+    "website": "https://github.com/ElandaSunshine/Capr",
+
+    "licenses": [
+        {
+            "name": "GPL-V3",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.de.html"
+        }
+    ],
+
+    "authors": [
+        {
+            "name": "Elanda",
+            "website": "https://elandasunshine.xyz/",
+            "company": "ElandaSunshine"
+        }
+    ],
+
+    "properties": {
+        "advanced.property": {
+            "value": "this value will be overridden when the plugin gets loaded with this property specified",
+            "inherit": true,
+            "scope": "global"
+        },
+        "simple.property": "This is a simple property which is not inherited and has plugin scope"
+    },
+
+    "dependencies": [
+        {
+            "id": "cson",
+            "required": true
+        },
+        {
+            "id": "non_existent_plugin",
+            "required": false
+        }
+    ],
+
+    "requirements": {
+        "capr_min": "0.1.0",
+        "cmake_min": "3.20.5"
+    }
+} 

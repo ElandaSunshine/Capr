@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20.5)
 
 project(CLogsTest)
 
-include("${CMAKE_CURRENT_LIST_DIR}/../../inbuilt/clogs/CLogs.cmake")
+include("../../inbuilt/clogs.cmake")
 
 # Here we define our own message format, this is optional and if not specified will just print the message alone
 # Other options are KEEP_UNKNOWN to don't remove format keywords that are not specified and KEEP_UNEXPANDED to don't remove format keywords that don't have a value at that stage

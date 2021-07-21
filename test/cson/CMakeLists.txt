@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20.5)
 
 project(CsonTest)
 
-include("${CMAKE_CURRENT_LIST_DIR}/../../inbuilt/cson/Cson.cmake")
+include("../../inbuilt/cson.cmake")
 
 set(TEST_JSON_STRING [[
     {

@@ -45,7 +45,7 @@ macro(cson_internal_process_member member_prefix member type)
     if ("${member_prefix}" STREQUAL "")
         set(${member_prefix}_opt_dot "")
     else()
-        set(${member_prefix}_opt_dot .)
+        set(${member_prefix}_opt_dot cson)
     endif()
 
     if ("${type}" STREQUAL "ARRAY" OR "${type}" STREQUAL "OBJECT")

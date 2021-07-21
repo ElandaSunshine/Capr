@@ -1,29 +1,69 @@
 ########################################################################################################################
-set(CAPR_REPOSITORY_LIST        "")
-set(CAPR_REPOSITORY_FORMAT_LIST "")
+function(capr_repository)
+    
+endfunction()
 
 ########################################################################################################################
-function(capr_internal_parse_repository_index index_file)
-    capr_internal_include_inbuilt_plugin("Cson")
-    cson_set_defaults()
-    set(CSON_COMMENT_KEYWORD "//")
-    cson_load(index "${index_file}")
+function(capr_repository_print_list)
+    get_property(out_repo_len GLOBAL PROPERTY CAPR_REPOSITORY_COUNT)
+    math(EXPR out_repository_last_index "${out_repo_len}-1")
+    message("====================================")
+    message("[CAPR] Indexed repositories ========")
+    message("====================================")
 
-    foreach(repository IN LISTS index.repositories)
-        if ("${${repository}.host}" STREQUAL "")
-            message(SEND_ERROR "Found empty host for repository")
+    foreach(index RANGE ${out_repository_last_index})
+        get_property(out_host GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_HOST)
+        get_property(out_name GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_NAME)
+        get_property(out_desc GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_DESC)
+        get_property(out_path GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_PATH_FORMAT)
+        
+        message("${out_name} (${out_host})")
+        message("-- ${out_desc}")
+        message("-- Format: ${out_path}")
+        
+        if (${index} LESS ${out_repository_last_index})
+            message("-------")
         endif()
-
-        set(repo_host "${${repository}.host}")
-        set(repo_path_format "${${repository}.format.path}")
-        set(repo_compression "${${repository}.format.compression}")
-        set(repo_hashes      "${${repository}.format.hash_algorithms}")
-
-        list(APPEND CAPR_REPOSITORY_LIST "${${repository}.host}")
-
-        list(APPEND CAPR_REPOSITORY_FORMAT_LIST "${${repository}.format}")
     endforeach()
 
-    set(CAPR_REPOSITORY_LIST        ${CAPR_REPOSITORY_LIST}        PARENT_SCOPE)
-    set(CAPR_REPOSITORY_FORMAT_LIST ${CAPR_REPOSITORY_FORMAT_LIST} PARENT_SCOPE)
+    message("====================================")
+    message("")
+endfunction()
+
+########################################################################################################################
+function(capr_internal_repository_parse_index index_file)
+    if (NOT EXISTS ${index_file})
+        message(FATAL_ERROR "Could not find repository index at: ${index_file}")
+    endif()
+    
+    file(READ "${index_file}" out_index_text)
+    
+    string(JSON out_repository_len LENGTH "${out_index_text}")
+    math(EXPR out_repository_last_index "${out_repository_len}-1")
+    
+    foreach(index RANGE ${out_repository_last_index})
+        string(JSON out_repo GET "${out_index_text}" ${index})
+        
+        string(JSON out_host                           GET "${out_repo}" host)
+        string(JSON out_name                           GET "${out_repo}" name)
+        string(JSON out_desc ERROR_VARIABLE null_error GET "${out_repo}" description)
+        string(JSON out_path ERROR_VARIABLE null_error GET "${out_path}" path_format)
+        
+        set_property(GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_HOST "${out_host}")
+        set_property(GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_NAME "${out_name}")
+        
+        if (out_desc)
+            set_property(GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_DESC "${out_desc}")
+        endif()
+        
+        if (out_path)
+            set_property(GLOBAL PROPERTY PLUGIN_REPOSITORY_${index}_PATH_FORMAT "${out_path}")
+        else()
+            set_property(GLOBAL
+                PROPERTY PLUGIN_REPOSITORY_${index}_PATH_FORMAT
+                "%package_path%/%id%/%version_path%/%id%-%version%.%ext%")
+        endif()
+    endforeach()
+    
+    set_property(GLOBAL PROPERTY CAPR_REPOSITORY_COUNT ${out_repository_len})
 endfunction()

@@ -1,0 +1,22 @@
+{
+    "name": "%name%",
+    "description": "%description%",
+    %website%
+    "licenses": [%license%],
+    "authors": [%author%],
+    
+    "deploy": {
+        "reposities": [
+            {
+                "type": "release",
+                "id": "%id%",
+                "package": "%package%",
+                "version": "%version%"
+            }
+        ],
+        
+        "build": {
+            
+        }
+    }
+}
