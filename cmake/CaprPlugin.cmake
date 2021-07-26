@@ -66,11 +66,11 @@ function(capr_plugin target)
                 get_target_property(out_plugin_root GLOBAL PROPERTY PLUGIN_${target}_SOURCE)
                 get_filename_component(out_plugin_root "${CAPR_PLUGIN_DIR}/${out_plugin_root}" DIRECTORY)
 
-                string(TOLOWER "${CAPR_HASH_FAIL_MODE}" out_hash_fail_mode)
+                string(TOLOWER "${CAPR_HASH_MISMATCH_MODE}" out_hash_fail_mode)
 
                 if (NOT "${out_hash_fail_mode}" STREQUAL "ignore")
                     if ("${out_hash_fail_mode}" STREQUAL "delete")
-                        file(REMOVE_RECURSE "${out_plugin_root}")
+                        capr_internal_clean_plugin_directory("${plugin_root}")
                         message(WARNING
                             "[Capr] Verification for plugin failed, it did not match its hash keys, removing files...")
                         capr_plugin_undeclare(${target})
@@ -143,7 +143,7 @@ function(capr_plugin_declare target)
     set_property(GLOBAL PROPERTY PLUGIN_${target}_VERSION      "${plugin_VERSION}")
     set_property(GLOBAL PROPERTY PLUGIN_${target}_VERSION_TYPE "${plugin_VERSION_TYPE}")
 
-    set_property(GLOBAL PROPERTY PLUGIN_${target}_SOURCE    "${plugin_path}/data")
+    set_property(GLOBAL PROPERTY PLUGIN_${target}_SOURCE    "${plugin_path}/cmake-plugin-data")
     set_property(GLOBAL PROPERTY PLUGIN_${target}_FILE_SHA1 "${plugin_path}/${plugin_ID}-${plugin_VERSION}.sha1")
     set_property(GLOBAL PROPERTY PLUGIN_${target}_FILE_MD5  "${plugin_path}/${plugin_ID}-${plugin_VERSION}.md5")
     set_property(GLOBAL PROPERTY PLUGIN_${target}_FILE_ZIP  "${plugin_path}/${plugin_ID}-${plugin_VERSION}.zip")
@@ -193,11 +193,10 @@ function(capr_plugin_download target)
         set(needs_verification TRUE)
     endif()
     
-    if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_zip}" OR ${CAPR_FORCE_DOWNLOAD})
+    if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_zip}" OR ${CAPR_FORCE_DOWNLOADS})
         get_filename_component(plugin_root "${CAPR_PLUGIN_DIR}/${file_zip}" DIRECTORY)
-        get_filename_component(plugin_root "${plugin_root}"                 DIRECTORY)
 
-        file(REMOVE_RECURSE "${plugin_root}")
+        capr_internal_clean_plugin_directory("${plugin_root}")
         file(MAKE_DIRECTORY "${plugin_root}")
         
         get_property(repository_list_len GLOBAL PROPERTY CAPR_REPOSITORY_COUNT)
@@ -274,7 +273,7 @@ function(capr_plugin_download target)
         endforeach()
         
         if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_zip}")
-            file(REMOVE_RECURSE "${plugin_root}")
+            capr_internal_clean_plugin_directory("${plugin_root}")
 
             get_property(plugin_required GLOBAL PROPERTY PLUGIN_${target}_REQUIRED)
 
@@ -359,15 +358,14 @@ function(capr_plugin_apply target)
     message(STATUS "[Capr] Applying plugin ${target} to project...")
     
     get_property(file_zip    GLOBAL PROPERTY PLUGIN_${target}_ZIP)
+    get_property(file_source GLOBAL PROPERTY PLUGIN_${target}_SOURCE)
     get_property(is_required GLOBAL PROPERTY PLUGIN_${target}_REQUIRED)
     
-    get_filename_component(plugin_root "${CAPR_PLUGIN_DIR}/${file_zip}" DIRECTORY)
-
-    if (NOT EXISTS "${plugin_root}/data/plugin.json")
+    if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_source}/plugin.json")
         message(VERBOSE "[Capr] Config file missing for '${target}, trying to extract the plugin...'")
 
-        file(REMOVE_RECURSE "${plugin_root}/data")
-        file(MAKE_DIRECTORY "${plugin_root}/data")
+        capr_internal_clean_plugin_directory("${CAPR_PLUGIN_DIR}/${file_source}")
+        file(MAKE_DIRECTORY "${CAPR_PLUGIN_DIR}/${file_source}")
 
         if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_zip}")
             if (${is_required})
@@ -380,9 +378,9 @@ function(capr_plugin_apply target)
 
         file(ARCHIVE_EXTRACT
             INPUT       "${CAPR_PLUGIN_DIR}/${file_zip}"
-            DESTINATION "${plugin_root}/data")
+            DESTINATION "${CAPR_PLUGIN_DIR}/${file_source}")
 
-        if (NOT EXISTS "${plugin_root}/data/plugin.json")
+        if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_source}/plugin.json")
             if (${is_required})
                 message(FATAL_ERROR "[Capr] Plugin archive was corrupt or did not represent a valid plugin")
             endif()
@@ -392,7 +390,7 @@ function(capr_plugin_apply target)
         endif()
     endif()
 
-    if (NOT EXISTS "${plugin_root}/data/Plugin.cmake")
+    if (NOT EXISTS "${CAPR_PLUGIN_DIR}/${file_source}/cmake/Plugin.cmake")
         if (${is_required})
             message(FATAL_ERROR "[Capr] Plugin archive was corrupt or did not represent a valid plugin")
         endif()
@@ -401,13 +399,13 @@ function(capr_plugin_apply target)
         return()
     endif()
     
-    capr_internal_plugin_load_config("${plugin_root}/data/plugin.json" ${is_required} config_parsing_failed)
+    capr_internal_plugin_load_config("${CAPR_PLUGIN_DIR}/${file_source}/plugin.json" ${is_required} config_parsing_failed)
     
     if (${config_parsing_failed})
         return()
     endif()
     
-    include("${capr_plugin_folder}/data/cmake/Plugin.cmake")
+    include("${CAPR_PLUGIN_DIR}/${file_source}/cmake/Plugin.cmake")
     cmake_language(CALL "plugin_init_${package}_${id}" ${target} LOCAL_PROPERTIES_${target})
     set_property(GLOBAL APPEND PROPERTY CAPR_APPLIED_PLUGINS ${target})
 endfunction()
@@ -633,6 +631,29 @@ function(capr_plugin_get_property out_value)
 endfunction()
 
 ########################################################################################################################
+function(capr_internal_clean_plugin_directory target)
+    get_property(file_zip    GLOBAL PROPERTY PLUGIN_${target}_FILE_ZIP)
+    get_property(file_sha1   GLOBAL PROPERTY PLUGIN_${target}_FILE_SHA1)
+    get_property(file_md5    GLOBAL PROPERTY PLUGIN_${target}_FILE_MD5)
+    get_property(file_source GLOBAL PROPERTY PLUGIN_${target}_SOURCE)
+    
+    if (EXISTS "${CAPR_PLUGIN_DIR}/${file_zip}")
+        file(REMOVE "${CAPR_PLUGIN_DIR}/${file_zip}")
+    endif()
+    
+    if (EXISTS "${CAPR_PLUGIN_DIR}/${file_sha1}")
+        file(REMOVE "${CAPR_PLUGIN_DIR}/${file_sha1}")
+    endif()
+    
+    if (EXISTS "${CAPR_PLUGIN_DIR}/${file_md5}")
+        file(REMOVE "${CAPR_PLUGIN_DIR}/${file_md5}")
+    endif()
+    
+    if (EXISTS "${CAPR_PLUGIN_DIR}/${file_source}")
+        file(REMOVE_RECURSE "${CAPR_PLUGIN_DIR}/${file_source}")
+    endif()
+endfunction()
+
 function(capr_internal_plugin_get_property map name out_value)
     string(TOLOWER "${name}" name)
     

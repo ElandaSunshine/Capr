@@ -1,7 +1,9 @@
-[
-    {
-        "name": "Capr Official Repository",
-        "host": "http://capr.elandasunshine.xyz/repository",
-        "description": "The official Capr repository, providing all sorts of plugins for CMake"
-    }
-]
+{
+    "repositories": [
+        {
+            "name": "Capr Official Repository",
+            "host": "http://capr.elandasunshine.xyz/api",
+            "description": "The official Capr repository, providing all sorts of plugins for CMake"
+        }
+    ]
+}
